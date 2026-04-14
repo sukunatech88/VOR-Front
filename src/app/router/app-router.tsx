@@ -7,6 +7,7 @@ import { DashboardPage } from "../../features/dashboard/routes/dashboard-page";
 import { FileRegistryPage } from "../../features/file-registry/routes/file-registry-page";
 import { FileRegistryDetailPage } from "../../features/file-registry/routes/file-registry-detail-page";
 import { MessageHubPage } from "../../features/message-hub/routes/message-hub-page";
+import { MessageHubDetailPage } from "../../features/message-hub/routes/message-hub-detail-page";
 import { UserAdministrationPage } from "../../features/user-administration/routes/user-administration-page";
 
 export function AppRouter() {
@@ -25,6 +26,10 @@ export function AppRouter() {
               element={<FileRegistryDetailPage />}
             />
             <Route path="/message-hub" element={<MessageHubPage />} />
+            <Route
+              path="/message-hub/:messageId"
+              element={<MessageHubDetailPage />}
+            />
             <Route
               path="/user-administration"
               element={<UserAdministrationPage />}
