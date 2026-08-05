@@ -1,12 +1,15 @@
 import type { PropsWithChildren } from "react";
 
+import { ApiClientProvider } from "./api-client-provider";
+import { AuthProvider } from "./auth-provider";
 import { QueryProvider } from "./query-provider";
-import { FakeAuthProvider } from "../../shared/lib/fake-auth";
 
 export function AppProviders({ children }: PropsWithChildren) {
   return (
     <QueryProvider>
-      <FakeAuthProvider>{children}</FakeAuthProvider>
+      <AuthProvider>
+        <ApiClientProvider>{children}</ApiClientProvider>
+      </AuthProvider>
     </QueryProvider>
   );
 }

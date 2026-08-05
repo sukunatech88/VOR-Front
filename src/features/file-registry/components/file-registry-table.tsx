@@ -1,42 +1,52 @@
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
-import type { FileRegistryItem } from "../types/file-registry.types";
+import { FileStatusBadge } from "./file-status-badge";
+import type { OperationsFileSummaryView } from "../types/file-registry.types";
 
-function statusClasses(status: FileRegistryItem["status"]) {
-  switch (status) {
-    case "IDENTIFIED":
-    case "PARSED":
-      return "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20";
-    case "FAILED":
-    case "UNSUPPORTED":
-      return "bg-rose-500/10 text-rose-300 border border-rose-500/20";
-    default:
-      return "bg-slate-800 text-slate-300 border border-slate-700";
-  }
+const dateFormatter = new Intl.DateTimeFormat(undefined, {
+  dateStyle: "medium",
+  timeStyle: "short",
+});
+
+function formatDate(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? "Date unavailable"
+    : dateFormatter.format(date);
 }
 
 interface FileRegistryTableProps {
-  items: FileRegistryItem[];
+  items: OperationsFileSummaryView[];
 }
 
 export function FileRegistryTable({ items }: FileRegistryTableProps) {
-  const navigate = useNavigate();
-
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/60">
       <div className="overflow-x-auto">
         <table className="min-w-full text-left text-sm">
+          <caption className="sr-only">
+            Files registered in the VOR operational repository
+          </caption>
           <thead className="bg-slate-950/80 text-slate-400">
             <tr>
-              <th className="px-4 py-3 font-medium">File ID</th>
-              <th className="px-4 py-3 font-medium">File Name</th>
-              <th className="px-4 py-3 font-medium">Direction</th>
-              <th className="px-4 py-3 font-medium">Bank</th>
-              <th className="px-4 py-3 font-medium">Organization</th>
-              <th className="px-4 py-3 font-medium">Message Type</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Received At</th>
-              <th className="px-4 py-3 font-medium">Size</th>
+              <th scope="col" className="px-4 py-3 font-medium">
+                File name
+              </th>
+              <th scope="col" className="px-4 py-3 font-medium">
+                Direction
+              </th>
+              <th scope="col" className="px-4 py-3 font-medium">
+                Bank connection
+              </th>
+              <th scope="col" className="px-4 py-3 font-medium">
+                Message type
+              </th>
+              <th scope="col" className="px-4 py-3 font-medium">
+                Effective status
+              </th>
+              <th scope="col" className="px-4 py-3 font-medium">
+                Updated
+              </th>
             </tr>
           </thead>
 
@@ -44,26 +54,40 @@ export function FileRegistryTable({ items }: FileRegistryTableProps) {
             {items.map((item) => (
               <tr
                 key={item.fileId}
-                className="cursor-pointer border-t border-slate-800 text-slate-200 transition hover:bg-slate-800/50"
-                onClick={() => navigate(`/file-registry/${item.fileId}`)}
+                className="border-t border-slate-800 text-slate-200"
               >
-                <td className="px-4 py-3">{item.fileId}</td>
-                <td className="px-4 py-3">{item.fileName}</td>
-                <td className="px-4 py-3">{item.direction}</td>
-                <td className="px-4 py-3">{item.bankName}</td>
-                <td className="px-4 py-3">{item.organizationName}</td>
-                <td className="px-4 py-3">{item.messageType}</td>
                 <td className="px-4 py-3">
-                  <span
-                    className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${statusClasses(item.status)}`}
+                  <Link
+                    className="font-medium text-indigo-300 underline-offset-4 hover:text-indigo-200 hover:underline"
+                    to={`/file-registry/${item.fileId}`}
                   >
-                    {item.status}
+                    {item.originalFileName}
+                  </Link>
+                  <span className="mt-1 block text-xs text-slate-500">
+                    {item.fileId}
+                  </span>
+                </td>
+                <td className="px-4 py-3">{item.direction}</td>
+                <td className="px-4 py-3">
+                  <span className="block">
+                    {item.ownership.bankConnectionDisplayName}
+                  </span>
+                  <span className="mt-1 block text-xs text-slate-500">
+                    {item.ownership.bankName} ·{" "}
+                    {item.ownership.organizationName}
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  {new Date(item.receivedAt).toLocaleString()}
+                  {item.messageType ?? item.classifiedMessageType ?? "Not classified"}
                 </td>
-                <td className="px-4 py-3">{item.sizeKb} KB</td>
+                <td className="px-4 py-3">
+                  <FileStatusBadge status={item.effectiveFileStatus} />
+                </td>
+                <td className="px-4 py-3">
+                  <time dateTime={item.updatedAt}>
+                    {formatDate(item.updatedAt)}
+                  </time>
+                </td>
               </tr>
             ))}
           </tbody>

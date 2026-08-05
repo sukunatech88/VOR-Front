@@ -1,118 +1,91 @@
-import { z } from "zod";
+import type {
+  ApiBinaryResponse,
+  ApiClient,
+} from "../../../core/http/api-client";
+import { ApiError } from "../../../core/http/api-error";
+import {
+  operationsFileDetailsSchema,
+  operationsFileListSchema,
+  registerFileResponseSchema,
+} from "../schemas/file-registry.schemas";
+import type {
+  FileRegistryFilters,
+  OperationsFileDetails,
+  OperationsFileList,
+  RegisterFileInput,
+  RegisterFileResponse,
+} from "../types/file-registry.types";
 
-import { fileRegistryMock } from "../mocks/file-registry.mock";
-import { fileRegistryDetailMock } from "../mocks/file-registry-detail.mock";
-import type { FileRegistryItem } from "../types/file-registry.types";
-import type { FileRegistryDetail } from "../types/file-registry-detail.types";
+const filesPath = "/api/operations/files";
+const registerFilePath = "/api/files/register";
 
-const fileRegistryItemSchema = z.object({
-  fileId: z.string(),
-  fileName: z.string(),
-  checksum: z.string(),
-  direction: z.enum(["INBOUND", "OUTBOUND"]),
-  bankName: z.string(),
-  organizationName: z.string(),
-  messageType: z.string(),
-  status: z.enum([
-    "DETECTED",
-    "RECEIVED",
-    "STORED",
-    "IDENTIFIED",
-    "PARSED",
-    "FAILED",
-    "UNSUPPORTED",
-  ]),
-  receivedAt: z.string(),
-  sizeKb: z.number(),
-});
+export async function getOperationsFiles(
+  client: ApiClient,
+  filters: FileRegistryFilters,
+  signal?: AbortSignal,
+): Promise<OperationsFileList> {
+  const response = await client.get<unknown>(filesPath, {
+    signal,
+    query: {
+      search: filters.search,
+      status: filters.status,
+      direction: filters.direction,
+      messageType: filters.messageType,
+      bankConnectionId: filters.bankConnectionId,
+      page: filters.page,
+      size: filters.size,
+    },
+  });
+  const result = operationsFileListSchema.safeParse(response);
 
-const fileRegistryTimelineEventSchema = z.object({
-  id: z.string(),
-  type: z.string(),
-  status: z.enum([
-    "DETECTED",
-    "RECEIVED",
-    "STORED",
-    "IDENTIFIED",
-    "PARSED",
-    "FAILED",
-    "UNSUPPORTED",
-    "INFO",
-  ]),
-  timestamp: z.string(),
-  description: z.string(),
-});
-
-const fileRegistryDetailSchema = z.object({
-  fileId: z.string(),
-  fileName: z.string(),
-  checksum: z.string(),
-  direction: z.enum(["INBOUND", "OUTBOUND"]),
-  bankName: z.string(),
-  organizationName: z.string(),
-  messageType: z.string(),
-  status: z.enum([
-    "DETECTED",
-    "RECEIVED",
-    "STORED",
-    "IDENTIFIED",
-    "PARSED",
-    "FAILED",
-    "UNSUPPORTED",
-  ]),
-  receivedAt: z.string(),
-  sizeKb: z.number(),
-  storagePath: z.string(),
-  sourceSystem: z.string(),
-  notes: z.string().optional(),
-  timeline: z.array(fileRegistryTimelineEventSchema),
-});
-
-const fileRegistryListSchema = z.array(fileRegistryItemSchema);
-
-export interface FileRegistryFilters {
-  search?: string;
-  status?: string;
-}
-
-export async function getFileRegistry(
-  filters?: FileRegistryFilters,
-): Promise<FileRegistryItem[]> {
-  await new Promise((resolve) => setTimeout(resolve, 350));
-
-  let items = [...fileRegistryMock];
-
-  if (filters?.search) {
-    const term = filters.search.toLowerCase();
-
-    items = items.filter((item) =>
-      [
-        item.fileName,
-        item.fileId,
-        item.bankName,
-        item.organizationName,
-        item.messageType,
-      ].some((value) => value.toLowerCase().includes(term)),
-    );
+  if (!result.success) {
+    throw ApiError.protocol("GET", filesPath);
   }
 
-  if (filters?.status && filters.status !== "ALL") {
-    items = items.filter((item) => item.status === filters.status);
-  }
-
-  return fileRegistryListSchema.parse(items);
+  return result.data;
 }
 
-export async function getFileRegistryById(
+export async function getOperationsFile(
+  client: ApiClient,
   fileId: string,
-): Promise<FileRegistryDetail> {
-  await new Promise((resolve) => setTimeout(resolve, 250));
+  signal?: AbortSignal,
+): Promise<OperationsFileDetails> {
+  const path = `${filesPath}/${fileId}`;
+  const response = await client.get<unknown>(path, { signal });
+  const result = operationsFileDetailsSchema.safeParse(response);
 
-  const item = fileRegistryDetailMock.find((entry) => entry.fileId === fileId);
-
-  if (!item) {
-    throw new Error("File registry item not found");
+  if (!result.success) {
+    throw ApiError.protocol("GET", path);
   }
 
-  return fileRegistryDetailSchema.parse(item);
+  return result.data;
+}
+
+export function downloadOperationsFileRaw(
+  client: ApiClient,
+  fileId: string,
+  signal?: AbortSignal,
+): Promise<ApiBinaryResponse> {
+  return client.getBinary(`${filesPath}/${fileId}/raw`, { signal });
+}
+
+export async function registerFile(
+  client: ApiClient,
+  input: RegisterFileInput,
+): Promise<RegisterFileResponse> {
+  const formData = new FormData();
+  formData.append("direction", input.direction);
+  formData.append("file", input.file, input.file.name);
+
+  const response = await client.post<unknown>(registerFilePath, {
+    body: formData,
+    retryOnUnauthorized: false,
+  });
+  const result = registerFileResponseSchema.safeParse(response);
+
+  if (!result.success) {
+    throw ApiError.protocol("POST", registerFilePath);
+  }
+
+  return result.data;
 }

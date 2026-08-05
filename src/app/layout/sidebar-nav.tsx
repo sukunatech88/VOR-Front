@@ -1,9 +1,11 @@
 import { NavLink } from "react-router-dom";
 import {
+  Building2,
   FolderKanban,
+  Landmark,
   LayoutDashboard,
   MessagesSquare,
-  Users,
+  ScrollText,
 } from "lucide-react";
 
 import { mainNavigation } from "../../core/constants/navigation";
@@ -13,14 +15,18 @@ const iconMap = {
   "layout-dashboard": LayoutDashboard,
   "folder-kanban": FolderKanban,
   "messages-square": MessagesSquare,
-  users: Users,
+  landmark: Landmark,
+  "scroll-text": ScrollText,
+  "building-2": Building2,
 };
 
 export function SidebarNav() {
   return (
     <aside className="flex h-screen w-72 flex-col border-r border-slate-800 bg-slate-950/80 px-4 py-5">
       <div className="mb-8 rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
-        <p className="text-xs uppercase tracking-[0.2em] text-emerald-400">VOR</p>
+        <p className="text-xs uppercase tracking-[0.2em] text-emerald-400">
+          VOR
+        </p>
         <h1 className="mt-2 text-lg font-semibold text-white">
           Connected Finance Platform
         </h1>
@@ -54,7 +60,8 @@ export function SidebarNav() {
       <div className="mt-auto rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
         <p className="text-xs font-medium text-slate-300">Estado actual</p>
         <p className="mt-2 text-sm text-slate-400">
-          Fake auth activa. Backend real pendiente.
+          Autenticación Auth0 activa. Dashboard, File Registry y Message Hub
+          conectados al backend VOR.
         </p>
       </div>
     </aside>

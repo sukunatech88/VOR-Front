@@ -1,7 +1,8 @@
-import type { DashboardMetric } from "../types/dashboard.types";
 import { Card } from "../../../shared/components/ui/card";
 
-function toneClasses(tone: DashboardMetric["tone"]) {
+type DashboardMetricTone = "default" | "success" | "warning" | "danger";
+
+function toneClasses(tone: DashboardMetricTone) {
   switch (tone) {
     case "success":
       return "text-emerald-300";
@@ -15,19 +16,22 @@ function toneClasses(tone: DashboardMetric["tone"]) {
 }
 
 interface DashboardMetricCardProps {
-  metric: DashboardMetric;
+  label: string;
+  value: string;
+  tone?: DashboardMetricTone;
 }
 
-export function DashboardMetricCard({ metric }: DashboardMetricCardProps) {
+export function DashboardMetricCard({
+  label,
+  value,
+  tone = "default",
+}: DashboardMetricCardProps) {
   return (
     <Card>
-      <p className="text-sm text-slate-400">{metric.label}</p>
-      <p className={`mt-3 text-3xl font-semibold ${toneClasses(metric.tone)}`}>
-        {metric.value}
+      <p className="text-sm text-slate-400">{label}</p>
+      <p className={`mt-3 text-3xl font-semibold ${toneClasses(tone)}`}>
+        {value}
       </p>
-      {metric.trend ? (
-        <p className="mt-2 text-sm text-slate-500">{metric.trend}</p>
-      ) : null}
     </Card>
   );
 }

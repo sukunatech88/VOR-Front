@@ -1,117 +1,100 @@
-import { z } from "zod";
+import type { ApiClient } from "../../../core/http/api-client";
+import { ApiError } from "../../../core/http/api-error";
+import {
+  operationsMessageDetailsSchema,
+  operationsMessageListSchema,
+  operationsTimelineSchema,
+  retryParseMessageResponseSchema,
+} from "../schemas/message-hub.schemas";
+import type {
+  MessageHubFilters,
+  OperationsMessageDetails,
+  OperationsMessageList,
+  OperationsTimeline,
+  RetryParseMessageInput,
+  RetryParseMessageResponse,
+} from "../types/message-hub.types";
 
-import { messageHubMock } from "../mocks/message-hub.mock";
-import { messageHubDetailMock } from "../mocks/message-hub-detail.mock";
-import type { MessageHubItem } from "../types/message-hub.types";
-import type { MessageHubDetail } from "../types/message-hub-detail.types";
+const messagesPath = "/api/operations/messages";
+const timelinePath = "/api/operations/timeline";
 
-const messageHubItemSchema = z.object({
-  messageId: z.string(),
-  fileId: z.string(),
-  messageType: z.string(),
-  direction: z.enum(["INBOUND", "OUTBOUND"]),
-  bankName: z.string(),
-  organizationName: z.string(),
-  reference: z.string(),
-  status: z.enum([
-    "RECEIVED",
-    "PARSED",
-    "NORMALIZED",
-    "VALIDATED",
-    "DISPATCHED",
-    "FAILED",
-    "MANUAL_REVIEW",
-  ]),
-  createdAt: z.string(),
-});
+export async function getOperationsMessages(
+  client: ApiClient,
+  filters: MessageHubFilters,
+  signal?: AbortSignal,
+): Promise<OperationsMessageList> {
+  const response = await client.get<unknown>(messagesPath, {
+    signal,
+    query: {
+      search: filters.search,
+      status: filters.status,
+      direction: filters.direction,
+      messageType: filters.messageType,
+      bankConnectionId: filters.bankConnectionId,
+      page: filters.page,
+      size: filters.size,
+    },
+  });
+  const result = operationsMessageListSchema.safeParse(response);
 
-const timelineEventSchema = z.object({
-  id: z.string(),
-  type: z.string(),
-  status: z.enum([
-    "RECEIVED",
-    "PARSED",
-    "NORMALIZED",
-    "VALIDATED",
-    "DISPATCHED",
-    "FAILED",
-    "MANUAL_REVIEW",
-    "INFO",
-  ]),
-  timestamp: z.string(),
-  description: z.string(),
-});
-
-const messageHubDetailSchema = z.object({
-  messageId: z.string(),
-  fileId: z.string(),
-  messageType: z.string(),
-  direction: z.enum(["INBOUND", "OUTBOUND"]),
-  bankName: z.string(),
-  organizationName: z.string(),
-  reference: z.string(),
-  status: z.enum([
-    "RECEIVED",
-    "PARSED",
-    "NORMALIZED",
-    "VALIDATED",
-    "DISPATCHED",
-    "FAILED",
-    "MANUAL_REVIEW",
-  ]),
-  createdAt: z.string(),
-  canonicalStatus: z.string(),
-  sourceSystem: z.string(),
-  payloadPreview: z.string(),
-  notes: z.string().optional(),
-  timeline: z.array(timelineEventSchema),
-});
-
-const messageHubListSchema = z.array(messageHubItemSchema);
-
-export interface MessageHubFilters {
-  search?: string;
-  status?: string;
-}
-
-export async function getMessageHub(
-  filters?: MessageHubFilters,
-): Promise<MessageHubItem[]> {
-  await new Promise((resolve) => setTimeout(resolve, 300));
-
-  let items = [...messageHubMock];
-
-  if (filters?.search) {
-    const term = filters.search.toLowerCase();
-    items = items.filter((item) =>
-      [
-        item.messageId,
-        item.fileId,
-        item.reference,
-        item.bankName,
-        item.organizationName,
-        item.messageType,
-      ].some((value) => value.toLowerCase().includes(term)),
-    );
+  if (!result.success) {
+    throw ApiError.protocol("GET", messagesPath);
   }
 
-  if (filters?.status && filters.status !== "ALL") {
-    items = items.filter((item) => item.status === filters.status);
-  }
-
-  return messageHubListSchema.parse(items);
+  return result.data;
 }
 
-export async function getMessageHubById(
+export async function getOperationsMessage(
+  client: ApiClient,
   messageId: string,
-): Promise<MessageHubDetail> {
-  await new Promise((resolve) => setTimeout(resolve, 250));
+  signal?: AbortSignal,
+): Promise<OperationsMessageDetails> {
+  const path = `${messagesPath}/${messageId}`;
+  const response = await client.get<unknown>(path, { signal });
+  const result = operationsMessageDetailsSchema.safeParse(response);
 
-  const item = messageHubDetailMock.find((entry) => entry.messageId === messageId);
-
-  if (!item) {
-    throw new Error("Message not found");
+  if (!result.success) {
+    throw ApiError.protocol("GET", path);
   }
 
-  return messageHubDetailSchema.parse(item);
+  return result.data;
+}
+
+export async function getOperationsTimeline(
+  client: ApiClient,
+  messageId: string,
+  signal?: AbortSignal,
+): Promise<OperationsTimeline> {
+  const path = `${timelinePath}/${messageId}`;
+  const response = await client.get<unknown>(path, { signal });
+  const result = operationsTimelineSchema.safeParse(response);
+
+  if (!result.success) {
+    throw ApiError.protocol("GET", path);
+  }
+
+  return result.data;
+}
+
+export async function retryOperationsMessage(
+  client: ApiClient,
+  input: RetryParseMessageInput,
+): Promise<RetryParseMessageResponse> {
+  const path = `${messagesPath}/${input.messageId}/retry`;
+  const response = await client.post<unknown>(path, {
+    headers: {
+      "Idempotency-Key": input.idempotencyKey,
+    },
+    json: {
+      reason: input.reason,
+    },
+    retryOnUnauthorized: false,
+  });
+  const result = retryParseMessageResponseSchema.safeParse(response);
+
+  if (!result.success) {
+    throw ApiError.protocol("POST", path);
+  }
+
+  return result.data;
 }

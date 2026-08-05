@@ -16,12 +16,12 @@ export function Topbar() {
       <div className="flex items-center gap-3">
         <div className="text-right">
           <p className="text-sm text-white">{user?.name}</p>
-          <p className="text-xs uppercase tracking-wide text-slate-400">
-            {user?.role}
-          </p>
+          {user?.email ? (
+            <p className="text-xs text-slate-400">{user.email}</p>
+          ) : null}
         </div>
 
-        <Button variant="ghost" onClick={logout}>
+        <Button variant="ghost" onClick={() => void logout()}>
           <LogOut className="mr-2 h-4 w-4" />
           Salir
         </Button>

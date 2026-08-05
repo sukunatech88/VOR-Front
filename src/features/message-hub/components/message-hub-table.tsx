@@ -1,69 +1,85 @@
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
-import type { MessageHubItem } from "../types/message-hub.types";
-
-function statusClasses(status: MessageHubItem["status"]) {
-  switch (status) {
-    case "VALIDATED":
-    case "DISPATCHED":
-      return "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20";
-    case "MANUAL_REVIEW":
-      return "bg-amber-500/10 text-amber-300 border border-amber-500/20";
-    case "FAILED":
-      return "bg-rose-500/10 text-rose-300 border border-rose-500/20";
-    default:
-      return "bg-slate-800 text-slate-300 border border-slate-700";
-  }
-}
+import { MessageStatusBadge } from "./message-status-badge";
+import type { OperationsMessageSummaryView } from "../types/message-hub.types";
 
 interface MessageHubTableProps {
-  items: MessageHubItem[];
+  items: OperationsMessageSummaryView[];
 }
 
 export function MessageHubTable({ items }: MessageHubTableProps) {
-  const navigate = useNavigate();
-
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/60">
       <div className="overflow-x-auto">
-        <table className="min-w-full text-left text-sm">
+        <table className="min-w-[70rem] text-left text-sm">
+          <caption className="sr-only">
+            Operational messages returned by the VOR backend
+          </caption>
           <thead className="bg-slate-950/80 text-slate-400">
             <tr>
-              <th className="px-4 py-3 font-medium">Message ID</th>
-              <th className="px-4 py-3 font-medium">File ID</th>
-              <th className="px-4 py-3 font-medium">Reference</th>
-              <th className="px-4 py-3 font-medium">Type</th>
-              <th className="px-4 py-3 font-medium">Direction</th>
-              <th className="px-4 py-3 font-medium">Bank</th>
-              <th className="px-4 py-3 font-medium">Organization</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Created At</th>
+              <th scope="col" className="px-4 py-3 font-medium">
+                Message
+              </th>
+              <th scope="col" className="px-4 py-3 font-medium">
+                File
+              </th>
+              <th scope="col" className="px-4 py-3 font-medium">
+                Type
+              </th>
+              <th scope="col" className="px-4 py-3 font-medium">
+                File status
+              </th>
+              <th scope="col" className="px-4 py-3 font-medium">
+                Connection
+              </th>
+              <th scope="col" className="px-4 py-3 font-medium">
+                Status
+              </th>
+              <th scope="col" className="px-4 py-3 font-medium">
+                Updated
+              </th>
             </tr>
           </thead>
-
           <tbody>
             {items.map((item) => (
               <tr
                 key={item.messageId}
-                className="cursor-pointer border-t border-slate-800 text-slate-200 transition hover:bg-slate-800/50"
-                onClick={() => navigate(`/message-hub/${item.messageId}`)}
+                className="border-t border-slate-800 text-slate-200"
               >
-                <td className="px-4 py-3">{item.messageId}</td>
-                <td className="px-4 py-3">{item.fileId}</td>
-                <td className="px-4 py-3">{item.reference}</td>
-                <td className="px-4 py-3">{item.messageType}</td>
-                <td className="px-4 py-3">{item.direction}</td>
-                <td className="px-4 py-3">{item.bankName}</td>
-                <td className="px-4 py-3">{item.organizationName}</td>
                 <td className="px-4 py-3">
-                  <span
-                    className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${statusClasses(item.status)}`}
+                  <Link
+                    className="font-medium text-indigo-300 underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-400"
+                    to={`/message-hub/${item.messageId}`}
                   >
-                    {item.status}
-                  </span>
+                    {item.messageReference || item.messageId}
+                  </Link>
+                  {item.messageReference ? (
+                    <p className="mt-1 max-w-56 truncate text-xs text-slate-500">
+                      {item.messageId}
+                    </p>
+                  ) : null}
                 </td>
                 <td className="px-4 py-3">
-                  {new Date(item.createdAt).toLocaleString()}
+                  <p>{item.originalFileName || "Not available"}</p>
+                  <p className="mt-1 max-w-56 truncate text-xs text-slate-500">
+                    {item.fileId}
+                  </p>
+                </td>
+                <td className="px-4 py-3">{item.messageType}</td>
+                <td className="px-4 py-3">
+                  {item.effectiveFileStatus || item.fileStatus || "Not available"}
+                </td>
+                <td className="px-4 py-3">
+                  <p>{item.ownership.bankConnectionDisplayName}</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {item.ownership.bankName}
+                  </p>
+                </td>
+                <td className="px-4 py-3">
+                  <MessageStatusBadge status={item.messageStatus} />
+                </td>
+                <td className="whitespace-nowrap px-4 py-3">
+                  {new Date(item.updatedAt).toLocaleString()}
                 </td>
               </tr>
             ))}

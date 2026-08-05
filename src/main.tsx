@@ -1,5 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
 
 import { AppProviders } from "./app/providers/app-providers";
 import { AppRouter } from "./app/router/app-router";
@@ -7,8 +8,10 @@ import "./index.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <AppProviders>
-      <AppRouter />
-    </AppProviders>
+    <BrowserRouter>
+      <AppProviders>
+        <AppRouter />
+      </AppProviders>
+    </BrowserRouter>
   </React.StrictMode>,
 );
